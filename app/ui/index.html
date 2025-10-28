@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Mini-Perplexity ACE</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <h1>Mini-Perplexity ACE</h1>
+        <p>Your AI/ML research digest with self-improving retrieval.</p>
+      </section>
+      <section class="query-box">
+        <textarea id="question" placeholder="Ask about the latest in AI/ML..."></textarea>
+        <div class="controls">
+          <label>
+            <input type="checkbox" id="fresh-only" />
+            Fresh (&le; 30 days)
+          </label>
+          <button id="submit">Run</button>
+        </div>
+      </section>
+      <section id="results" class="results hidden">
+        <h2>Answer</h2>
+        <ul id="bullets"></ul>
+        <div id="sources"></div>
+        <details id="provenance">
+          <summary>Provenance</summary>
+          <pre id="metadata"></pre>
+        </details>
+      </section>
+    </main>
+    <script src="main.js" type="module"></script>
+  </body>
+</html>

@@ -1,0 +1,37 @@
+environment: "development"
+log_level: "INFO"
+cache_dir: "./.cache"
+search:
+  provider: "brave"
+  brave:
+    api_key: "BSAKdoQsSaxllHDYvLAlVay98e88Hf8"
+    endpoint: "https://api.search.brave.com/res/v1/web/search"
+    max_results: 20
+models:
+  planner:
+    provider: "openrouter"
+    model: "alibaba/tongyi-deepresearch-30b-a3b:free"
+    api_key: "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"
+  synthesizer:
+    provider: "openrouter"
+    model: "alibaba/tongyi-deepresearch-30b-a3b:free"
+    api_key: "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"
+  reflector:
+    provider: "openrouter"
+    model: "alibaba/tongyi-deepresearch-30b-a3b:free"
+    api_key: "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"
+  embeddings:
+    provider: "sentence_transformers"
+    model: "intfloat/e5-large-v2"
+  reranker:
+    provider: "sentence_transformers"
+    model: "BAAI/bge-reranker-base"
+limits:
+  max_sources: 8
+  max_chunks: 40
+  request_timeout_seconds: 20
+freshness:
+  default_days: 14
+  enforce_source_window: true
+validation:
+  min_citation_coverage: 0.95
