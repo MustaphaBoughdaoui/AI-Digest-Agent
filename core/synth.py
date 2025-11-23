@@ -70,8 +70,8 @@ class Synthesizer:
             LLMMessage(
                 role="system",
                 content=(
-                    "You are an expert AI/ML research analyst. "
-                    "Synthesize concise bullet points with precise inline citations."
+                    "You are an expert AI/ML research analyst creating a Daily Digest. "
+                    "Synthesize concise, actionable bullet points (news, tricks, updates) with precise inline citations."
                 ),
             ),
             LLMMessage(
@@ -80,15 +80,17 @@ class Synthesizer:
                     f"Question: {question}\n\n"
                     "Context snippets:\n"
                     f"{context}\n\n"
-                    "Write 3-7 bullets. Each bullet:\n"
-                    "- contains exactly one primary claim enriched with metrics if available.\n"
-                    "- includes citation tags like [1] referencing the snippet IDs.\n"
-                    "- stays within two lines.\n"
-                    "After the bullets, list Sources with titles and URLs."
+                    "Instructions:\n"
+                    "1. Write 3-7 bullet points using the format '- [Claim] [citation]'.\n"
+                    "2. Each bullet must contain exactly one primary claim enriched with metrics/details.\n"
+                    "3. Use citation tags like [1], [2] referencing the snippet IDs provided in Context.\n"
+                    "4. Highlight practical tricks, breaking news, or benchmarks.\n"
+                    "5. Do NOT write any introduction or conclusion. Start directly with the bullets.\n"
+                    "6. After the bullets, add a section 'Sources:' listing titles and URLs."
                 ),
             ),
         ]
-        response = await self._llm.generate(messages, temperature=0.4, max_tokens=400)
+        response = await self._llm.generate(messages, temperature=0.2, max_tokens=600)
         return response.content.strip()
 
     async def _chain_of_density(self, question: str, context: str, draft: str) -> str:
@@ -96,8 +98,8 @@ class Synthesizer:
             LLMMessage(
                 role="system",
                 content=(
-                    "You enhance AI research summaries using chain-of-density: "
-                    "add missing entities, metrics, and comparisons without increasing length."
+                    "You enhance AI research summaries using chain-of-density. "
+                    "Output ONLY the refined bullet points."
                 ),
             ),
             LLMMessage(
@@ -107,35 +109,50 @@ class Synthesizer:
                     f"Context:\n{context}\n\n"
                     "Draft summary:\n"
                     f"{draft}\n\n"
-                    "Improve density with the rules:\n"
-                    "1. Preserve number of bullets.\n"
+                    "Improve density with these rules:\n"
+                    "1. Preserve the bullet point format '- ...'.\n"
                     "2. Insert missing proper nouns, datasets, benchmarks, and license info.\n"
-                    "3. Do not introduce information absent from the context.\n"
-                    "Return the refined bullets and Sources list."
+                    "3. Ensure every bullet has at least one citation [x].\n"
+                    "4. Do not introduce information absent from the context.\n"
+                    "5. Output ONLY the bullets. No preamble."
                 ),
             ),
         ]
-        response = await self._llm.generate(messages, temperature=0.3, max_tokens=400)
+        response = await self._llm.generate(messages, temperature=0.2, max_tokens=600)
         return response.content.strip()
 
     def _parse_bullets(self, text: str) -> List[AnswerBullet]:
         bullet_lines: List[str] = []
         sources_started = False
         bullet_pattern = re.compile(r"^\d+[\).\s]")
-        for line in text.splitlines():
+        
+        lines = text.splitlines()
+        for line in lines:
             stripped = line.strip()
             if not stripped:
                 continue
-            if stripped.lower().startswith("sources"):
+            if stripped.lower().startswith("sources:") or stripped.lower() == "sources":
                 sources_started = True
                 break
-            if stripped.startswith(("-", "*", "•")) or bullet_pattern.match(stripped):
+            
+            # Check for standard bullet markers
+            is_bullet = stripped.startswith(("-", "*", "•")) or bullet_pattern.match(stripped)
+            
+            if is_bullet:
                 cleaned = stripped.lstrip("-*• ").strip()
                 cleaned = re.sub(r"^\d+[\).\s]+", "", cleaned).strip()
                 bullet_lines.append(cleaned)
             else:
-                if bullet_lines:
+                # Heuristic: If we haven't started sources and line is long enough, treat as bullet 
+                # if we have no bullets yet, or append to previous if it looks like continuation.
+                if not bullet_lines:
+                     # Treat first non-empty line as bullet if it doesn't look like a header
+                     if len(stripped) > 20 and not stripped.endswith(":"):
+                         bullet_lines.append(stripped)
+                else:
+                    # Append to previous bullet
                     bullet_lines[-1] = bullet_lines[-1] + " " + stripped
+
         bullets: List[AnswerBullet] = []
         citation_pattern = re.compile(r"\[(\d+)\]")
         for line in bullet_lines:

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional, Protocol
 
 import httpx
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +68,7 @@ class OpenRouterClient:
         model: str,
         api_key: str,
         endpoint: str = "https://openrouter.ai/api/v1/chat/completions",
-        timeout: float = 40.0,
+        timeout: float = 60.0,
     ):
         if not api_key:
             raise ValueError("OpenRouter API key is required.")
@@ -75,6 +76,17 @@ class OpenRouterClient:
         self.api_key = api_key
         self.endpoint = endpoint
         self.timeout = timeout
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type(httpx.HTTPStatusError),
+    )
+    async def _execute_request(self, payload: dict, headers: dict) -> dict:
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            response = await client.post(self.endpoint, json=payload, headers=headers)
+            response.raise_for_status()
+            return response.json()
 
     async def generate(
         self,
@@ -92,10 +104,7 @@ class OpenRouterClient:
             "HTTP-Referer": "https://mini-perplexity.local",
             "X-Title": "Mini-Perplexity ACE",
         }
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            response = await client.post(self.endpoint, json=payload, headers=headers)
-            response.raise_for_status()
-            data = response.json()
+        data = await self._execute_request(payload, headers)
         choice = data["choices"][0]
         content = choice.get("message", {}).get("content", "")
         usage = data.get("usage", {})

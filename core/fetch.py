@@ -101,7 +101,7 @@ class RobotsChecker:
 class Fetcher:
     """HTTP client with caching and robots compliance."""
 
-    def __init__(self, user_agent: str = "MiniPerplexity/0.1", timeout: float = 20.0):
+    def __init__(self, user_agent: str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36", timeout: float = 20.0):
         self.user_agent = user_agent
         self.timeout = timeout
         self.cache = FetchCache(cache_directory())

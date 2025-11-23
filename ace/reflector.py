@@ -127,6 +127,8 @@ class Reflector:
             expected.add(SourceType.NEWS)
         if {"twitter", "tweet", "x"}.intersection(tokens):
             expected.add(SourceType.TWITTER)
-        if {"reddit", "discussion", "thread"}.intersection(tokens):
+        if {"reddit", "discussion", "thread", "digest", "tricks", "hacks", "tips"}.intersection(tokens):
             expected.add(SourceType.REDDIT)
+            if "digest" in tokens:
+                expected.add(SourceType.TWITTER)
         return expected

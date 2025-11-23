@@ -7,6 +7,7 @@ from typing import Dict, Iterable, List, Optional
 from urllib.parse import urlencode
 
 import httpx
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 from .types import SearchQuery, SearchResult, SourceType
 
@@ -34,6 +35,17 @@ class BraveSearchProvider(SearchProvider):
         if not api_key:
             logger.warning("Brave API key not provided. Search will be mocked.")
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type(httpx.HTTPStatusError),
+    )
+    async def _execute_search(self, params: dict, headers: dict) -> dict:
+         async with httpx.AsyncClient(timeout=self.timeout) as client:
+            response = await client.get(self.endpoint, params=params, headers=headers)
+            response.raise_for_status()
+            return response.json()
+
     async def search(self, query: SearchQuery, top_k: int = 10) -> List[SearchResult]:
         if not self.api_key:
             return self._offline_results(query, top_k)
@@ -47,10 +59,12 @@ class BraveSearchProvider(SearchProvider):
             "Accept": "application/json",
             "X-Subscription-Token": self.api_key,
         }
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            response = await client.get(self.endpoint, params=params, headers=headers)
-            response.raise_for_status()
-            payload = response.json()
+        try:
+            payload = await self._execute_search(params, headers)
+        except Exception as e:
+            logger.error(f"Search failed for query '{query.query}': {e}")
+            return []
+
         return self._parse(payload, query)
 
     def _parse(self, payload: Dict, query: SearchQuery) -> List[SearchResult]:

@@ -13,23 +13,50 @@ logger = logging.getLogger(__name__)
 
 
 _SOURCE_ALIASES = {
-    SourceType.ARXIV: {"paper", "arxiv", "research", "publication"},
-    SourceType.GITHUB: {"github", "repo", "repository", "framework", "code"},
-    SourceType.HUGGINGFACE: {"huggingface", "model", "checkpoint", "dataset"},
-    SourceType.NEWS: {"news", "announce", "launch", "report"},
-    SourceType.BLOG: {"blog", "analysis", "review", "opinion", "newsletter"},
-    SourceType.TWITTER: {"twitter", "tweet", "tweets", "x.com", "x"},
-    SourceType.REDDIT: {"reddit", "thread", "discussion", "subreddit"},
+    SourceType.ARXIV: {
+        "paper", "arxiv", "research", "publication", "preprint", "pdf", "study", "journal"
+    },
+    SourceType.GITHUB: {
+        "github", "repo", "repository", "framework", "code", "implementation", 
+        "library", "sdk", "api", "install", "pip", "rust", "python"
+    },
+    SourceType.HUGGINGFACE: {
+        "huggingface", "model", "checkpoint", "dataset", "weights", "lora", "gguf", "quantized"
+    },
+    SourceType.NEWS: {
+        "news", "announce", "launch", "report", "release", "update", "breaking", 
+        "business", "startup", "funding"
+    },
+    SourceType.BLOG: {
+        "blog", "analysis", "review", "opinion", "newsletter", "guide", "tutorial", 
+        "how-to", "explained", "deep dive"
+    },
+    SourceType.TWITTER: {
+        "twitter", "tweet", "tweets", "x.com", "x", "reaction", "sentiment", 
+        "community", "thread", "digest", "influencers"
+    },
+    SourceType.REDDIT: {
+        "reddit", "thread", "discussion", "subreddit", "tricks", "hacks", "tips", 
+        "experience", "review", "comparison", "vs"
+    },
 }
 
 
-def _match_source_types(question: str) -> List[SourceType]:
+def _match_source_types(question: str, include_defaults: bool = True) -> List[SourceType]:
     normalized = question.lower()
     matches: List[SourceType] = []
     for source_type, keywords in _SOURCE_ALIASES.items():
         if any(keyword in normalized for keyword in keywords):
             matches.append(source_type)
-    if not matches:
+    
+    # Special handling for "latest" keywords triggering social sources
+    if any(term in normalized for term in {"latest", "breaking", "today", "recent", "updates", "digest", "tricks", "hacks", "tips"}):
+        if SourceType.TWITTER not in matches:
+            matches.append(SourceType.TWITTER)
+        if SourceType.REDDIT not in matches:
+            matches.append(SourceType.REDDIT)
+            
+    if not matches and include_defaults:
         # default to broad coverage for discovery queries
         matches = [
             SourceType.ARXIV,
@@ -38,11 +65,6 @@ def _match_source_types(question: str) -> List[SourceType]:
             SourceType.NEWS,
             SourceType.BLOG,
         ]
-    if any(term in normalized for term in {"latest", "breaking", "today", "recent", "updates"}):
-        if SourceType.TWITTER not in matches:
-            matches.append(SourceType.TWITTER)
-        if SourceType.REDDIT not in matches:
-            matches.append(SourceType.REDDIT)
     return matches
 
 
@@ -55,7 +77,7 @@ def _generate_focus_terms(tokens: Sequence[str]) -> List[str]:
     for token in tokens:
         if len(token) <= 3:
             continue
-        if token in {"what", "whats", "new", "latest", "compare", "versus", "vs"}:
+        if token in {"what", "whats", "new", "latest", "compare", "versus", "vs", "digest"}:
             continue
         focus_terms.append(token)
     return focus_terms[:6]
@@ -122,7 +144,21 @@ class Planner:
 
         for idx, task in enumerate(sub_tasks[: self.config.max_steps]):
             search_queries: List[SearchQuery] = []
-            for source_type in matched_sources:
+            
+            # Determine sources relevant to this specific task
+            task_sources = _match_source_types(task, include_defaults=False)
+            
+            # If task has specific sources, prioritize them. Otherwise fallback to global matches.
+            # We union them to ensure we don't miss global intent (e.g. "Check reddit" in main prompt)
+            effective_sources = set(task_sources) | set(matched_sources)
+            
+            # If still empty (unlikely due to defaults in matched_sources), use defaults
+            if not effective_sources:
+                 effective_sources = {
+                    SourceType.ARXIV, SourceType.GITHUB, SourceType.NEWS, SourceType.BLOG
+                 }
+
+            for source_type in effective_sources:
                 cfg = self.sources_config.get(source_type.value)
                 if not cfg:
                     continue
@@ -135,20 +171,28 @@ class Planner:
                     source_type,
                     playbook_hints,
                 )
-                parts = [query_base.strip()]
-                if augmented_terms:
-                    parts.append(augmented_terms)
-                if rewrite:
-                    parts.append(rewrite)
-                final_query = " ".join(filter(None, parts))
-                search_queries.append(
-                    SearchQuery(
-                        query=final_query.strip(),
-                        source_type=source_type,
-                        rationale=f"Focus on {source_type.value} sources for task: {task}",
-                        freshness_days=freshness_days,
+                
+                # Split query_base if it contains many OR clauses to avoid URI length limits
+                base_parts = [p.strip() for p in query_base.split(" OR ")]
+                chunk_size = 8  # Conservative chunk size for search engines
+                chunks = [base_parts[i:i + chunk_size] for i in range(0, len(base_parts), chunk_size)]
+
+                for chunk in chunks:
+                    chunk_base = " OR ".join(chunk)
+                    parts = [chunk_base]
+                    if augmented_terms:
+                        parts.append(augmented_terms)
+                    if rewrite:
+                        parts.append(rewrite)
+                    final_query = " ".join(filter(None, parts))
+                    search_queries.append(
+                        SearchQuery(
+                            query=final_query.strip(),
+                            source_type=source_type,
+                            rationale=f"Focus on {source_type.value} sources for task: {task}",
+                            freshness_days=freshness_days,
+                        )
                     )
-                )
             steps.append(
                 PlannerStep(
                     thought=f"Step {idx + 1}: {task}",

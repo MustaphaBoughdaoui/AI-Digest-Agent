@@ -17,26 +17,28 @@ huggingface:
     - models
     - datasets
 news:
-  query_base: "site:semianalysis.com OR site:the-decoder.com OR site:venturebeat.com/ai"
-  freshness_days: 7
+  query_base: "site:semianalysis.com OR site:the-decoder.com OR site:venturebeat.com/ai OR site:news.ycombinator.com"
+  freshness_days: 3
   tags:
     - news
     - commentary
 blogs:
-  query_base: "site:medium.com OR site:substack.com ai"
+  query_base: "site:medium.com OR site:substack.com ai OR site:simonwillison.net OR site:lilianweng.github.io"
   freshness_days: 7
   tags:
     - blogs
     - analysis
 twitter:
-  query_base: "site:x.com ai OR machine learning"
-  freshness_days: 5
+  query_base: "site:x.com/AI_Breakthrough OR site:x.com/AndrewYNg OR site:x.com/AnthropicAI OR site:x.com/CummingsRenee OR site:x.com/DailyAITechNews OR site:x.com/DeepMind OR site:x.com/DrJimFan OR site:x.com/GaryMarcus OR site:x.com/GoogleAI OR site:x.com/JeffDean OR site:x.com/JoyBuolamwini OR site:x.com/LangChainAI OR site:x.com/MITCSAIl OR site:x.com/MetaAI OR site:x.com/NVIDIAAI OR site:x.com/OpenAI OR site:x.com/Ronald_vanLoon OR site:x.com/StanfordHAI OR site:x.com/_jasonwei OR site:x.com/_willfalcon OR site:x.com/alexandr_wang OR site:x.com/alliekmiller OR site:x.com/demishassabis OR site:x.com/drfeifei OR site:x.com/fchollet OR site:x.com/gdb OR site:x.com/geoffreyhinton OR site:x.com/goodfellow_ian OR site:x.com/huggingface OR site:x.com/karpathy OR site:x.com/kirkdborne OR site:x.com/lexfridman OR site:x.com/mattshumer_ OR site:x.com/natolambert OR site:x.com/rasbt OR site:x.com/sama OR site:x.com/satyanadella OR site:x.com/timnitGebru OR site:x.com/weights_biases OR site:x.com/ylecun OR site:x.com/_akhaliq"
+  freshness_days: 1
   tags:
     - social
     - realtime
+    - influencers
 reddit:
-  query_base: "site:reddit.com/r/MachineLearning OR site:reddit.com/r/OpenAI"
-  freshness_days: 5
+  query_base: "site:reddit.com/r/MachineLearning OR site:reddit.com/r/OpenAI OR site:reddit.com/r/LocalLLaMA"
+  freshness_days: 3
   tags:
     - community
     - discussion
+    - tricks

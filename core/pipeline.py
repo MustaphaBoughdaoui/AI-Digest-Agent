@@ -112,14 +112,36 @@ class Pipeline:
         documents: List[RetrievedDocument] = []
 
         async def fetch_single(result: SearchResult) -> Optional[RetrievedDocument]:
-            fetch_result = await self.fetcher.fetch(result.url)
-            if not fetch_result:
-                return None
+            fetch_result = await self.fetcher.fetch(str(result.url))
+            
+            # Fallback to snippet if fetch fails or is blocked
+            if not fetch_result or fetch_result.status_code >= 400 or len(fetch_result.content) < 200:
+                 logger.warning(f"Fetch failed or blocked for {result.url}, using snippet.")
+                 return RetrievedDocument(
+                     url=result.url,
+                     title=result.title,
+                     text=result.snippet, # Use snippet as text
+                     source_type=result.source_type,
+                     published_at=result.published_at,
+                     metadata={"fallback": True}
+                 )
+
             document = extract_document(
                 fetch_result,
                 source_type=result.source_type,
                 title_hint=result.title,
             )
+            
+            # If extraction failed (empty text), fallback to snippet
+            if not document or not document.text.strip():
+                 return RetrievedDocument(
+                     url=result.url,
+                     title=result.title,
+                     text=result.snippet,
+                     source_type=result.source_type,
+                     published_at=result.published_at,
+                     metadata={"fallback": True}
+                 )
             return document
 
         tasks = [fetch_single(result) for result in search_results]
