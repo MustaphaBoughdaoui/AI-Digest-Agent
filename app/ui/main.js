@@ -42,16 +42,26 @@ submitButton.addEventListener("click", async () => {
 
 function renderResult(payload) {
   bulletsList.innerHTML = "";
-  payload.bullets.forEach((bullet) => {
+  payload.bullets.forEach((bullet, index) => {
     const li = document.createElement("li");
     li.textContent = bullet.text;
+    li.style.animationDelay = `${index * 0.1}s`;
+    li.classList.add('fade-in-item');
     bulletsList.appendChild(li);
   });
   if (payload.sources.length) {
     const links = payload.sources
-      .map((source) => `[${source.label}] <a href="${source.url}" target="_blank" rel="noopener">${source.title}</a>`)
-      .join("<br/>");
-    sourcesDiv.innerHTML = `<h3>Sources</h3>${links}`;
+      .map((source, index) => `
+        <div class="source-item" style="animation-delay: ${index * 0.1}s">
+          <span class="source-label">[${source.label}]</span>
+          <a href="${source.url}" target="_blank" rel="noopener">
+            <i class="fas fa-external-link-alt"></i>
+            ${source.title}
+          </a>
+        </div>
+      `)
+      .join("");
+    sourcesDiv.innerHTML = `<h3>Sources</h3><div class="sources-list">${links}</div>`;
   } else {
     sourcesDiv.innerHTML = "";
   }
@@ -61,5 +71,13 @@ function renderResult(payload) {
 
 function toggleLoading(isLoading) {
   submitButton.disabled = isLoading;
-  submitButton.textContent = isLoading ? "Running..." : "Run";
+  const buttonText = submitButton.querySelector('.button-text');
+  const spinner = submitButton.querySelector('.spinner');
+  if (isLoading) {
+    buttonText.textContent = 'Running...';
+    spinner.classList.remove('hidden');
+  } else {
+    buttonText.textContent = 'Run';
+    spinner.classList.add('hidden');
+  }
 }
