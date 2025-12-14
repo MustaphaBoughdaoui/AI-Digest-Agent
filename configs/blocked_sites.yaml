@@ -1,0 +1,44 @@
+# Configuration pour les sites qui bloquent souvent les scrapers
+
+# Sites qui nécessitent un proxy obligatoire
+always_proxy:
+  - "medium.com"
+  - "substack.com"
+  - "linkedin.com"
+  - "twitter.com"
+  - "x.com"
+  - "reddit.com"
+  - "nytimes.com"
+  - "wsj.com"
+  - "ft.com"
+  - "bloomberg.com"
+
+# Sites avec rate limiting strict
+rate_limited:
+  - "github.com"         # 60 requests/hour non-auth
+  - "arxiv.org"          # Respecter robots.txt
+  - "huggingface.co"     # Rate limiting par IP
+
+# Fallback strategies
+fallback_order:
+  1: "jina_reader"       # https://r.jina.ai/ - Meilleur pour Twitter, Reddit
+  2: "12ft_proxy"        # https://12ft.io/ - Contourne les paywalls
+  3: "archive_today"     # https://archive.today/ - Backup général
+  4: "snippet_only"      # Utiliser uniquement le snippet de recherche
+
+# Timeouts par type de site (secondes)
+timeouts:
+  pdf: 30              # arXiv PDFs
+  social: 10           # Twitter, Reddit
+  news: 15             # Sites de news
+  code: 20             # GitHub, repos
+  default: 20
+
+# Headers spéciaux par domaine
+custom_headers:
+  "github.com":
+    "Accept": "application/vnd.github.v3+json"
+  "arxiv.org":
+    "Accept": "application/pdf,text/html"
+  "huggingface.co":
+    "Accept": "application/json,text/html"

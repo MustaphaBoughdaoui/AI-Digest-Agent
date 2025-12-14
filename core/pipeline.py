@@ -112,37 +112,45 @@ class Pipeline:
         documents: List[RetrievedDocument] = []
 
         async def fetch_single(result: SearchResult) -> Optional[RetrievedDocument]:
-            fetch_result = await self.fetcher.fetch(str(result.url))
+            # Try with retries
+            max_retries = 2
+            for attempt in range(max_retries):
+                fetch_result = await self.fetcher.fetch(str(result.url))
+                
+                # Success case
+                if fetch_result and fetch_result.status_code == 200 and len(fetch_result.content) >= 200:
+                    document = extract_document(
+                        fetch_result,
+                        source_type=result.source_type,
+                        title_hint=result.title,
+                    )
+                    if document and document.text.strip():
+                        return document
+                
+                # Blocked or failed - try with snippet on last attempt
+                if attempt == max_retries - 1:
+                    logger.warning(f"All fetch attempts failed for {result.url}, using snippet.")
+                    return RetrievedDocument(
+                        url=result.url,
+                        title=result.title,
+                        text=result.snippet,
+                        source_type=result.source_type,
+                        published_at=result.published_at,
+                        metadata={"fallback": True, "reason": "fetch_blocked_or_failed"}
+                    )
+                
+                # Wait before retry
+                await asyncio.sleep(1 * (attempt + 1))
             
-            # Fallback to snippet if fetch fails or is blocked
-            if not fetch_result or fetch_result.status_code >= 400 or len(fetch_result.content) < 200:
-                 logger.warning(f"Fetch failed or blocked for {result.url}, using snippet.")
-                 return RetrievedDocument(
-                     url=result.url,
-                     title=result.title,
-                     text=result.snippet, # Use snippet as text
-                     source_type=result.source_type,
-                     published_at=result.published_at,
-                     metadata={"fallback": True}
-                 )
-
-            document = extract_document(
-                fetch_result,
+            # Final fallback to snippet
+            return RetrievedDocument(
+                url=result.url,
+                title=result.title,
+                text=result.snippet,
                 source_type=result.source_type,
-                title_hint=result.title,
+                published_at=result.published_at,
+                metadata={"fallback": True, "reason": "max_retries_exceeded"}
             )
-            
-            # If extraction failed (empty text), fallback to snippet
-            if not document or not document.text.strip():
-                 return RetrievedDocument(
-                     url=result.url,
-                     title=result.title,
-                     text=result.snippet,
-                     source_type=result.source_type,
-                     published_at=result.published_at,
-                     metadata={"fallback": True}
-                 )
-            return document
 
         tasks = [fetch_single(result) for result in search_results]
         for coro in asyncio.as_completed(tasks):

@@ -10,16 +10,16 @@ search:
 models:
   planner:
     provider: "openrouter"
-    model: "alibaba/tongyi-deepresearch-30b-a3b:free"
-    api_key: "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"
+    model: "mistralai/devstral-2512:free"
+    api_key: "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"
   synthesizer:
     provider: "openrouter"
-    model: "alibaba/tongyi-deepresearch-30b-a3b:free"
-    api_key: "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"
+    model: "mistralai/devstral-2512:free"
+    api_key: "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"
   reflector:
     provider: "openrouter"
-    model: "alibaba/tongyi-deepresearch-30b-a3b:free"
-    api_key: "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"
+    model: "mistralai/devstral-2512:free"
+    api_key: "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"
   embeddings:
     provider: "sentence_transformers"
     model: "intfloat/e5-large-v2"

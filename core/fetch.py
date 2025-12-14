@@ -101,12 +101,21 @@ class RobotsChecker:
 class Fetcher:
     """HTTP client with caching and robots compliance."""
 
-    def __init__(self, user_agent: str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36", timeout: float = 20.0):
-        self.user_agent = user_agent
+    USER_AGENTS = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:121.0) Gecko/20100101 Firefox/121.0",
+    ]
+
+    def __init__(self, user_agent: str = None, timeout: float = 20.0):
+        self.user_agent = user_agent or self.USER_AGENTS[0]
         self.timeout = timeout
         self.cache = FetchCache(cache_directory())
-        self.robots = RobotsChecker(user_agent=user_agent)
+        self.robots = RobotsChecker(user_agent=self.user_agent)
         self.config = load_app_config()
+        self._ua_index = 0
 
     async def fetch(self, url: str, use_cache: bool = True) -> Optional[FetchResult]:
         requested_url = str(url)
@@ -129,9 +138,26 @@ class Fetcher:
                 logger.warning("Robots policy disallows fetching %s", fetch_url)
                 return None
 
-        headers = {"User-Agent": self.user_agent, "Accept": "text/html,application/pdf"}
+        # Rotate user agent for each request
+        self._ua_index = (self._ua_index + 1) % len(self.USER_AGENTS)
+        current_ua = self.USER_AGENTS[self._ua_index]
+        
+        headers = {
+            "User-Agent": current_ua,
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate, br",
+            "DNT": "1",
+            "Connection": "keep-alive",
+            "Upgrade-Insecure-Requests": "1",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "none",
+            "Cache-Control": "max-age=0",
+        }
+        
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
+            async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
                 response = await client.get(fetch_url, headers=headers)
         except httpx.HTTPError as exc:  # pragma: no cover - network failure
             logger.error("Fetch failed for %s: %s", fetch_url, exc)
@@ -180,9 +206,30 @@ class Fetcher:
         host = parsed.netloc.lower()
         path = parsed.path or "/"
         query = f"?{parsed.query}" if parsed.query else ""
+        full_url = f"https://{host}{path}{query}"
 
+        # Twitter/X - use Jina reader
         if host in {"x.com", "www.x.com", "twitter.com", "mobile.twitter.com"}:
-            return f"https://r.jina.ai/https://{host}{path}{query}"
+            return f"https://r.jina.ai/{full_url}"
+        
+        # Reddit - use Jina reader
         if host.endswith("reddit.com"):
-            return f"https://r.jina.ai/https://{host}{path}{query}"
+            return f"https://r.jina.ai/{full_url}"
+        
+        # Medium - often blocks, use 12ft proxy
+        if "medium.com" in host:
+            return f"https://12ft.io/proxy?q={full_url}"
+        
+        # Substack - can block
+        if "substack.com" in host:
+            return f"https://r.jina.ai/{full_url}"
+        
+        # LinkedIn - blocks most scrapers
+        if "linkedin.com" in host:
+            return f"https://r.jina.ai/{full_url}"
+        
+        # Generic paywall bypass for news sites
+        if any(news_site in host for news_site in ["nytimes.com", "wsj.com", "ft.com", "bloomberg.com"]):
+            return f"https://12ft.io/proxy?q={full_url}"
+        
         return None
