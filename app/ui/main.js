@@ -6,7 +6,8 @@ const bulletsList = document.getElementById("bullets");
 const sourcesDiv = document.getElementById("sources");
 const metadataPre = document.getElementById("metadata");
 
-const API_BASE = "";
+// Use relative path - works when served from FastAPI
+const API_BASE = "..";
 
 submitButton.addEventListener("click", async () => {
   const question = questionInput.value.trim();
@@ -16,44 +17,44 @@ submitButton.addEventListener("click", async () => {
   }
   toggleLoading(true);
   try {
-    const response = await fetch(`${API_BASE}/answer`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        question,
-        fresh_only: freshOnlyInput.checked,
-        max_sources: 8,
-      }),
-    });
-    
-    // Check if response has content
-    const contentType = response.headers.get("content-type");
-    if (!contentType || !contentType.includes("application/json")) {
-      throw new Error(`Server returned ${response.status}: ${response.statusText}. Expected JSON response.`);
+    let response;
+    try {
+      response = await fetch(`${API_BASE}/answer`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          question,
+          fresh_only: freshOnlyInput.checked,
+          max_sources: 8,
+        }),
+      });
+    } catch (networkError) {
+      throw new Error("Cannot connect to API server at http://127.0.0.1:8000\n\nPlease start the server:\n1. Open Command Prompt\n2. Run: cd C:\\Users\\AzComputer\\Documents\\projects\\AI-Digest-Agent\n3. Run: python -m uvicorn app.api:app --host 127.0.0.1 --port 8000");
     }
-    
+
     const text = await response.text();
-    if (!text || text.trim().length === 0) {
-      throw new Error("Server returned empty response");
-    }
     
+    if (!text || text.trim() === "") {
+      throw new Error("Server returned empty response. The API server may have crashed.");
+    }
+
     let payload;
     try {
       payload = JSON.parse(text);
-    } catch (e) {
-      console.error("Failed to parse JSON:", text);
-      throw new Error(`Invalid JSON response: ${e.message}`);
+    } catch (parseError) {
+      console.error("Invalid response:", text);
+      throw new Error("Server returned invalid data. Check if the API server is running correctly on port 8000.");
     }
-    
+
     if (!response.ok) {
-      throw new Error(payload.detail || `Request failed with status ${response.status}`);
+      throw new Error(payload.detail || payload.message || "Request failed");
     }
-    
+
     renderResult(payload);
   } catch (error) {
-    console.error("Request failed:", error);
+    console.error("Error:", error);
     alert(`Error: ${error.message}`);
   } finally {
     toggleLoading(false);
@@ -94,10 +95,10 @@ function toggleLoading(isLoading) {
   const buttonText = submitButton.querySelector('.button-text');
   const spinner = submitButton.querySelector('.spinner');
   if (isLoading) {
-    buttonText.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running...';
+    buttonText.textContent = 'Running...';
     spinner.classList.remove('hidden');
   } else {
-    buttonText.innerHTML = '<i class="fas fa-rocket"></i> Run Query';
+    buttonText.textContent = 'Run';
     spinner.classList.add('hidden');
   }
 }

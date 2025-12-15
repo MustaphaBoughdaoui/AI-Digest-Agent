@@ -5,6 +5,7 @@ from typing import List
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from ace.curator import Curator
@@ -34,6 +35,12 @@ reflector = Reflector()
 curator = Curator(store=store)
 
 app.mount("/ui", StaticFiles(directory="app/ui"), name="ui")
+
+
+@app.get("/")
+async def root():
+    """Redirect root to UI."""
+    return RedirectResponse(url="/ui/index.html")
 
 
 @app.get("/health")

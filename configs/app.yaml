@@ -11,15 +11,15 @@ models:
   planner:
     provider: "openrouter"
     model: "mistralai/devstral-2512:free"
-    api_key: "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"
+    api_key: "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"
   synthesizer:
     provider: "openrouter"
     model: "mistralai/devstral-2512:free"
-    api_key: "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"
+    api_key: "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"
   reflector:
     provider: "openrouter"
     model: "mistralai/devstral-2512:free"
-    api_key: "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"
+    api_key: "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"
   embeddings:
     provider: "sentence_transformers"
     model: "intfloat/e5-large-v2"
