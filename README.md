@@ -1,68 +1,477 @@
-# Mini-Perplexity ACE
+# 🤖 AI Digest Agent
 
-Mini-Perplexity ACE is a focused research digester for the AI/ML ecosystem. It combines a ReAct + Self-Ask planner, web search, retrieval-augmented reading, and chain-of-density summarisation to produce citation-backed answers. An ACE loop (Generator -> Reflector -> Curator) continuously updates a structured playbook of heuristics so the system improves over time.
+> An intelligent research assistant that delivers citation-backed answers through retrieval-augmented generation and self-improving ACE architecture.
 
-## Key Capabilities
-- AI/ML niche awareness: planner query rewrites cover arXiv, GitHub, Hugging Face, analyst blogs, trusted news, and freshness-weighted Twitter/X plus Reddit streams.
-- Two-stage retrieval: E5 embeddings for recall, BGE cross-encoder for precision, windowed snippets, and caching for latency.
-- Cited synthesis: chain-of-density summariser emits up to seven bullets with inline `[n]` citations and a source list.
-- AIS-style validation: ensures every bullet is attributable to sources; otherwise the reflector proposes corrective playbook items.
-- ACE self-improvement: run metadata feeds the reflector, which emits playbook deltas that the curator merges deterministically into SQLite.
-- Minimal web UI: FastAPI backend with a static "Mini Perplexity" front-end for quick testing.
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115.0-009688.svg)](https://fastapi.tiangolo.com)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Directory Layout
+AI Digest Agent is a sophisticated research digester specifically designed for the AI/ML ecosystem. It combines advanced planning algorithms (ReAct + Self-Ask), real-time web search, retrieval-augmented reading, and chain-of-density summarization to produce accurate, citation-backed answers. The system continuously improves through an **ACE loop** (Autonomous Cognitive Entity) that learns from each query.
+
+---
+
+## ✨ Key Features
+
+### 🎯 Intelligent Query Planning
+- **ReAct + Self-Ask planner** breaks down complex questions into targeted sub-queries
+- **AI/ML niche awareness** with specialized source handling:
+  - Academic papers (arXiv, research blogs)
+  - Code repositories (GitHub, Hugging Face)
+  - Community discussions (Reddit, X/Twitter)
+  - Industry news and analyst reports
+- **Freshness-weighted search** prioritizes recent content
+
+### 🔍 Advanced Retrieval System
+- **Two-stage ranking**: E5 embeddings for recall + BGE cross-encoder for precision
+- **Windowed snippet extraction** for optimal context
+- **Smart caching** reduces latency on repeated queries
+- **Document chunking** with overlap for comprehensive coverage
+
+### 📝 Citation-Backed Synthesis
+- **Chain-of-density summarization** produces concise, information-dense answers
+- **Inline citations** `[n]` for every claim
+- **Automated validation** ensures all bullets are attributable to sources
+- Up to 7 key insights per answer with full source transparency
+
+### 🔄 Self-Improvement (ACE Loop)
+- **Generator**: Executes the complete research pipeline
+- **Reflector**: Analyzes run quality, identifies gaps in validation, freshness, and coverage
+- **Curator**: Merges learnings into a SQLite-backed playbook
+- System improves automatically with each query
+
+### 🎨 Modern Web Interface
+- Clean, minimal UI for quick testing
+- Real-time answer streaming
+- Source exploration and citation tracking
+- FastAPI backend with CORS support
+
+---
+
+## 🏗️ Architecture
+
 ```
-mini-perplexity-ace/
-├─ app/         FastAPI app + static UI
-├─ core/        Planner, search, fetch, rank, synthesis, validation
-├─ ace/         Self-improvement loop (playbook, reflector, curator)
-├─ configs/     App + niche source configuration
-├─ data/        Seed questions and evaluation hooks
-├─ scripts/     Utilities for seeding the playbook and running evals
-└─ README.md
+┌─────────────┐
+│   User UI   │
+└──────┬──────┘
+       │
+┌──────▼───────────────────────────────────────┐
+│              FastAPI Server                   │
+│  ┌──────────────────────────────────────┐   │
+│  │           Pipeline Flow              │   │
+│  │                                       │   │
+│  │  1. Planner  →  Search Queries       │   │
+│  │       ↓                               │   │
+│  │  2. Search  →  Web Results           │   │
+│  │       ↓                               │   │
+│  │  3. Fetch   →  Documents             │   │
+│  │       ↓                               │   │
+│  │  4. Rank    →  Top Chunks            │   │
+│  │       ↓                               │   │
+│  │  5. Synth   →  Answer + Citations    │   │
+│  │       ↓                               │   │
+│  │  6. Validate → Quality Check         │   │
+│  └──────────────────────────────────────┘   │
+│                                              │
+│  ┌──────────────────────────────────────┐   │
+│  │         ACE Loop (Async)             │   │
+│  │                                       │   │
+│  │  Reflector  →  Analyze Quality       │   │
+│  │       ↓                               │   │
+│  │  Curator    →  Update Playbook       │   │
+│  └──────────────────────────────────────┘   │
+└──────────────────────────────────────────────┘
 ```
 
-## Getting Started
-1. **Install dependencies**
+---
+
+## 📁 Project Structure
+
+```
+AiDigestAgent/
+├── app/                      # FastAPI application
+│   ├── api.py               # Main API routes
+│   └── ui/                  # Static web interface
+│       ├── index.html
+│       ├── main.js
+│       └── styles.css
+├── core/                     # Core pipeline components
+│   ├── pipeline.py          # Main orchestrator
+│   ├── planner.py           # Query planning & decomposition
+│   ├── search.py            # Web search integration
+│   ├── fetch.py             # Document fetching
+│   ├── parse.py             # Content extraction
+│   ├── chunks.py            # Text chunking
+│   ├── rank.py              # Two-stage ranking
+│   ├── synth.py             # Answer synthesis
+│   ├── validate.py          # Citation validation
+│   ├── llm.py               # LLM client factory
+│   └── types.py             # Shared data models
+├── ace/                      # ACE self-improvement loop
+│   ├── generator.py         # Run generator
+│   ├── reflector.py         # Quality analysis
+│   ├── curator.py           # Playbook management
+│   ├── playbook_store.py    # SQLite persistence
+│   └── schemas.py           # ACE data models
+├── configs/                  # Configuration files
+│   ├── app.yaml             # Main app config (API keys, models)
+│   ├── niche_sources.yaml   # Source type definitions
+│   └── blocked_sites.yaml   # Site blocklist
+├── scripts/                  # Utility scripts
+│   ├── backfill_playbook.py # Initialize playbook
+│   ├── run_digest.py        # CLI digest runner
+│   └── run_eval.py          # Evaluation suite
+├── data/
+│   └── seeds/
+│       └── questions.json   # Test questions
+├── docs/                     # Documentation
+│   ├── ANTI_BLOCKING_STRATEGY.md
+│   ├── COMMENT_DEMARRER.md  # French quick start
+│   └── CONFIGURER_CLES_API.md
+├── requirements.txt
+├── start_server.bat         # Windows quick-start
+└── README.md
+```
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Python 3.9 or higher
+- Brave Search API key ([Get free key](https://brave.com/search/api/))
+- OpenRouter API key ([Get free key](https://openrouter.ai/keys))
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/AiDigestAgent.git
+   cd AiDigestAgent
+   ```
+
+2. **Create virtual environment**
    ```bash
    python -m venv .venv
-   source .venv/bin/activate  # Windows: .venv\Scripts\activate
+   
+   # On Windows
+   .venv\Scripts\activate
+   
+   # On macOS/Linux
+   source .venv/bin/activate
+   ```
+
+3. **Install dependencies**
+   ```bash
    pip install -r requirements.txt
    ```
-2. **Configure API keys**
-   - Edit `configs/app.yaml` with your Brave Search key and OpenRouter key (sample keys are pre-filled for local testing).
-   - Optionally customise `configs/niche_sources.yaml`.
-3. **Seed the playbook**
+
+4. **Configure API keys**
+   
+   Edit `configs/app.yaml` and add your API keys:
+   ```yaml
+   search:
+     brave:
+       api_key: "YOUR_BRAVE_API_KEY"
+   
+   models:
+     planner:
+       api_key: "YOUR_OPENROUTER_API_KEY"
+     synthesizer:
+       api_key: "YOUR_OPENROUTER_API_KEY"
+     reflector:
+       api_key: "YOUR_OPENROUTER_API_KEY"
+   ```
+   
+   **Note**: The project uses `mistralai/devstral-2512:free` which is free on OpenRouter!
+
+5. **Initialize the playbook** (optional but recommended)
    ```bash
    python scripts/backfill_playbook.py --db playbook.db
    ```
-4. **Launch the API**
+
+6. **Start the server**
+   
+   **Windows**: Double-click `start_server.bat`
+   
+   **macOS/Linux**:
    ```bash
-   uvicorn app.api:app --reload
+   python -m uvicorn app.api:app --host 127.0.0.1 --port 8000
    ```
-   Visit `http://localhost:8000/ui/index.html` for the minimal interface.
 
-## Usage Notes
-- Query payload: POST `/answer` with JSON `{ "question": "...", "fresh_only": true, "max_sources": 6 }`.
-- Playbook insights: GET `/ace/playbook` to inspect current heuristics.
-- Evaluation loop: `python scripts/run_eval.py` runs through the seed questions and prints bullet digests.
+7. **Open the UI**
+   
+   Navigate to: **http://127.0.0.1:8000/ui/index.html**
 
-## ACE Loop
-1. **Generator** runs the full planner -> retriever -> synthesiser pipeline and logs traces.
-2. **Reflector** inspects validation, freshness, and coverage to propose `PlaybookDelta` entries.
-3. **Curator** deduplicates and merges deltas into the SQLite-backed playbook.
+---
 
-Each `/answer` call automatically triggers the reflector and curator, and annotates the response metadata with merged delta IDs.
+## 💡 Usage
 
-## Extending the System
-- Swap `BraveSearchProvider` with a custom provider by implementing `SearchProvider`.
-- Add validators in `core/validate.py` (for example, hallucination scoring or redundancy checks).
-- Create additional playbook item types by extending `ace/schemas.py`.
-- Tie into dashboards by streaming `RunMetadata` objects to your analytics stack.
+### Web Interface
 
-## Roadmap Ideas
-- Background cron to auto-run weekly digests and publish to email or Substack.
-- W&B or LangSmith tracing for richer experiments.
-- Queue-based ingestion for higher throughput workloads.
+1. Open the UI at `http://127.0.0.1:8000/ui/index.html`
+2. Type your question in the input field
+3. Click "Search" and wait 30-40 seconds
+4. Review the citation-backed answer with sources
 
-Mini-Perplexity ACE is designed to be a practical, inspectable research assistant for teams shipping ML systems. Contributions and customisation are encouraged. Happy summarising!
+### API
+
+**Query endpoint:**
+```bash
+curl -X POST http://127.0.0.1:8000/answer \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question": "What are the latest breakthroughs in large language models?",
+    "fresh_only": true,
+    "max_sources": 6
+  }'
+```
+
+**Response format:**
+```json
+{
+  "question": "What are the latest breakthroughs...",
+  "bullets": [
+    {
+      "text": "Recent models achieve 95% accuracy on benchmarks [1][2]",
+      "citations": [1, 2]
+    }
+  ],
+  "sources": [
+    {
+      "id": 1,
+      "title": "...",
+      "url": "...",
+      "snippet": "..."
+    }
+  ],
+  "metadata": {
+    "run_id": "...",
+    "ace": {
+      "deltas_proposed": [...],
+      "deltas_merged": [...]
+    }
+  }
+}
+```
+
+**Other endpoints:**
+- `GET /health` - Health check
+- `GET /ace/playbook` - Inspect learned heuristics
+- `GET /ace/playbook?tag=validation` - Filter playbook by tag
+
+### Command Line
+
+Run a digest directly:
+```bash
+python scripts/run_digest.py "What are the latest AI safety research developments?"
+```
+
+Run evaluation on seed questions:
+```bash
+python scripts/run_eval.py
+```
+
+---
+
+## ⚙️ Configuration
+
+### Main Config (`configs/app.yaml`)
+
+```yaml
+environment: "development"
+log_level: "INFO"
+cache_dir: "./.cache"
+
+search:
+  provider: "brave"
+  brave:
+    max_results: 20
+
+models:
+  planner:
+    provider: "openrouter"
+    model: "mistralai/devstral-2512:free"
+  embeddings:
+    provider: "sentence_transformers"
+    model: "intfloat/e5-large-v2"
+  reranker:
+    model: "BAAI/bge-reranker-base"
+
+limits:
+  max_sources: 8
+  max_chunks: 40
+  request_timeout_seconds: 20
+
+freshness:
+  default_days: 14
+  enforce_source_window: true
+
+validation:
+  min_citation_coverage: 0.95
+```
+
+### Niche Sources (`configs/niche_sources.yaml`)
+
+Define AI/ML-specific sources:
+- Academic repositories (arXiv)
+- Code platforms (GitHub, Hugging Face)
+- Community discussions (Reddit, HackerNews)
+- Analyst blogs and industry news
+
+---
+
+## 🧪 How the ACE Loop Works
+
+Every query triggers the self-improvement cycle:
+
+### 1. **Generator**
+- Executes the full pipeline (plan → search → fetch → rank → synthesize)
+- Collects detailed `RunMetadata` (timing, sources, validation scores)
+
+### 2. **Reflector**
+Analyzes the run and proposes improvements:
+- **Validation checks**: Are all bullets properly cited?
+- **Freshness checks**: Are sources recent enough?
+- **Coverage checks**: Are all relevant source types represented?
+
+Creates `PlaybookDelta` entries with rationale.
+
+### 3. **Curator**
+- Deduplicates similar playbook items
+- Merges approved deltas into SQLite database
+- Maintains helpful/harmful counters for future prioritization
+
+### Continuous Learning
+- Playbook insights guide future planner decisions
+- System gets smarter with each query
+- Inspect learnings via `/ace/playbook` endpoint
+
+---
+
+## 🔧 Extending the System
+
+### Add a Custom Search Provider
+
+```python
+from core.search import SearchProvider
+
+class MySearchProvider(SearchProvider):
+    async def search(self, query: str) -> List[SearchResult]:
+        # Your implementation
+        pass
+
+# In pipeline.py
+def _build_search_provider(self):
+    if provider_name == "mysearch":
+        return MySearchProvider(...)
+```
+
+### Add Custom Validators
+
+```python
+# In core/validate.py
+def validate_custom_rule(answer: AnswerResponse) -> ValidatorIssue:
+    # Your validation logic
+    pass
+```
+
+### Extend Playbook Item Types
+
+```python
+# In ace/schemas.py
+class PlaybookItemType(str, Enum):
+    VALIDATION_RULE = "validation_rule"
+    CUSTOM_RULE = "custom_rule"  # Add your type
+```
+
+---
+
+## 📊 Performance Optimization
+
+See [PERFORMANCE_IMPROVEMENTS.md](PERFORMANCE_IMPROVEMENTS.md) for detailed optimization strategies:
+
+- **Parallel fetching** with connection pooling (30-40% faster)
+- **Search result caching** (instant for repeated queries)
+- **Lazy model loading** (2-3s faster startup)
+- **Batch LLM calls** (1-2s saved per query)
+- **Early stopping** in synthesis (50% faster for simple queries)
+
+---
+
+## 🛠️ Tech Stack
+
+- **Backend**: FastAPI, Uvicorn
+- **LLM Integration**: OpenRouter API (free tier available)
+- **Search**: Brave Search API
+- **Embeddings**: Sentence Transformers (E5-large-v2)
+- **Reranking**: BGE reranker
+- **Content Extraction**: Trafilatura, BeautifulSoup, Readability
+- **Database**: SQLite (via SQLAlchemy)
+- **HTTP Client**: httpx (async)
+
+---
+
+## 📝 Common Issues
+
+### ❌ 401 Unauthorized Error
+- Make sure you've added valid API keys in `configs/app.yaml`
+- See [CONFIGURER_CLES_API.md](CONFIGURER_CLES_API.md) for detailed setup
+
+### ⚠️ Port 8000 Already in Use
+```bash
+# Windows
+netstat -ano | findstr :8000
+taskkill /PID <PID> /F
+
+# macOS/Linux
+lsof -ti:8000 | xargs kill -9
+```
+
+### 🐌 Slow First Query
+- First query loads embedding/reranker models (~30-40s)
+- Subsequent queries are much faster (~10-15s)
+- Models are cached in memory
+
+### 🚫 Don't Use Live Server!
+- Always use `start_server.bat` or `uvicorn` command
+- Don't open `index.html` directly
+- FastAPI serves both API and UI on port 8000
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Areas for improvement:
+
+- Additional search providers (DuckDuckGo, Bing, etc.)
+- Alternative LLM backends (Ollama, local models)
+- Enhanced validation rules
+- Performance optimizations
+- UI improvements
+
+---
+
+## 📄 License
+
+MIT License - see LICENSE file for details
+
+---
+
+## 🙏 Acknowledgments
+
+- Built with inspiration from Perplexity AI's citation-backed search
+- ACE architecture inspired by autonomous agent research
+- Uses state-of-the-art open models for embeddings and reranking
+
+---
+
+## 📬 Support
+
+For issues and questions:
+- Open a GitHub issue
+- Check [documentation](docs/)
+- Review [common problems](CONFIGURER_CLES_API.md)
+
+---
+
+**Made with ❤️ for the AI/ML research community**
