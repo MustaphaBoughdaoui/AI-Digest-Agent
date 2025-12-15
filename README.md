@@ -473,5 +473,3 @@ For issues and questions:
 - Review [common problems](CONFIGURER_CLES_API.md)
 
 ---
-
-**Made with ❤️ for the AI/ML research community**
