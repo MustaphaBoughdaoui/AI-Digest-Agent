@@ -4,7 +4,7 @@
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115.0-009688.svg)](https://fastapi.tiangolo.com)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 AI Digest Agent is a sophisticated research digester specifically designed for the AI/ML ecosystem. It combines advanced planning algorithms (ReAct + Self-Ask), real-time web search, retrieval-augmented reading, and chain-of-density summarization to produce accurate, citation-backed answers. The system continuously improves through an **ACE loop** (Autonomous Cognitive Entity) that learns from each query.
 
@@ -123,10 +123,6 @@ AiDigestAgent/
 ├── data/
 │   └── seeds/
 │       └── questions.json   # Test questions
-├── docs/                     # Documentation
-│   ├── ANTI_BLOCKING_STRATEGY.md
-│   ├── COMMENT_DEMARRER.md  # French quick start
-│   └── CONFIGURER_CLES_API.md
 ├── requirements.txt
 ├── start_server.bat         # Windows quick-start
 └── README.md
@@ -186,7 +182,7 @@ AiDigestAgent/
 
 5. **Initialize the playbook** (optional but recommended)
    ```bash
-   python scripts/backfill_playbook.py --db playbook.db
+   python scripts/backfill_playbook.py
    ```
 
 6. **Start the server**
@@ -265,6 +261,7 @@ Run a digest directly:
 ```bash
 python scripts/run_digest.py "What are the latest AI safety research developments?"
 ```
+*Edit the script to customize your question.*
 
 Run evaluation on seed questions:
 ```bash
@@ -388,13 +385,12 @@ class PlaybookItemType(str, Enum):
 
 ## 📊 Performance Optimization
 
-See [PERFORMANCE_IMPROVEMENTS.md](PERFORMANCE_IMPROVEMENTS.md) for detailed optimization strategies:
+The system includes several optimizations:
 
 - **Parallel fetching** with connection pooling (30-40% faster)
 - **Search result caching** (instant for repeated queries)
 - **Lazy model loading** (2-3s faster startup)
 - **Batch LLM calls** (1-2s saved per query)
-- **Early stopping** in synthesis (50% faster for simple queries)
 
 ---
 
@@ -415,7 +411,7 @@ See [PERFORMANCE_IMPROVEMENTS.md](PERFORMANCE_IMPROVEMENTS.md) for detailed opti
 
 ### ❌ 401 Unauthorized Error
 - Make sure you've added valid API keys in `configs/app.yaml`
-- See [CONFIGURER_CLES_API.md](CONFIGURER_CLES_API.md) for detailed setup
+- Get your [Brave Search API key](https://brave.com/search/api/) and [OpenRouter API key](https://openrouter.ai/keys)
 
 ### ⚠️ Port 8000 Already in Use
 ```bash
@@ -432,28 +428,17 @@ lsof -ti:8000 | xargs kill -9
 - Subsequent queries are much faster (~10-15s)
 - Models are cached in memory
 
-### 🚫 Don't Use Live Server!
-- Always use `start_server.bat` or `uvicorn` command
-- Don't open `index.html` directly
-- FastAPI serves both API and UI on port 8000
-
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome! Areas for improvement:
-
-- Additional search providers (DuckDuckGo, Bing, etc.)
-- Alternative LLM backends (Ollama, local models)
-- Enhanced validation rules
-- Performance optimizations
-- UI improvements
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
 
 ---
 
 ## 📄 License
 
-MIT License - see LICENSE file for details
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
@@ -465,11 +450,4 @@ MIT License - see LICENSE file for details
 
 ---
 
-## 📬 Support
-
-For issues and questions:
-- Open a GitHub issue
-- Check [documentation](docs/)
-- Review [common problems](CONFIGURER_CLES_API.md)
-
----
+**Made with ❤️ for the AI/ML research community**
